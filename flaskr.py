@@ -40,16 +40,43 @@ session = DBSession()
 
 #main page
 @app.route('/<int:datetime>', methods=['GET'])
+#int:datetime = 20150102.. int형
 def main_page(datetime):
-	query = session.query(Time).all()
+#2016-01-02필요 -> datime 슬라이싱 필요
+#datime은 int형이므로 슬라이싱하기 위해 int -> str변환
+	datetime = str(datetime)
+	year = datetime[:4]
+	month = datetime[4:6]
+	day = datetime[6:8]
+
+#session.query의 return형은 object이다.
+	query = session.query(Time)
+
+#eTime : 2016-01-02 13:00:00
+	matched_query = query.from_statement("SELECT * FROM time WHERE eTime LIKE :dateT").params(dateT = year+'-'+month+'-'+day+'%')
+
 	converted_list = []
-	for i in query:
+	for i in matched_query:
 		time_object = i.__dict__.copy()
 		del time_object['_sa_instance_state']
 		converted_list.append(time_object)
 	session.close()
-	print type(converted_list)
 	return jsonify(result=converted_list)
+
+	#result는 query의 결과인 리스트의 키 부분이다.
+	#query는 [{키:값}{키:값}..]
+	#result:query
+	#result:[{behavior: "test",eTime: "Sat, 02 Jan 2016 13:00:00 GMT", timeCode: "1"},{..},{...}]
+
+	#flask.jsonify()는 ()를 json타입으로 바꿔줌
+	#result를 키로 리스트형인 query를 값으로하는 json타입(딕셔너리형)이 된다.
+	#{result:query}
+	#{result:[{키:값}{..}]}
+
+#########################
+	return datetime
+# query_row = query.from_statement("select * from object where obj_code=:obj_code").params(obj_code=obj_code).first()
+#########################
 
 
 # #Object post, put, delete
