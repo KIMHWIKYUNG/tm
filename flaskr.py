@@ -73,10 +73,7 @@ def main_page(datetime):
 	#{result:query}
 	#{result:[{키:값}{..}]}
 
-#########################
-	return datetime
-# query_row = query.from_statement("select * from object where obj_code=:obj_code").params(obj_code=obj_code).first()
-#########################
+
 
 
 # #Object post, put, delete
