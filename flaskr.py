@@ -39,16 +39,19 @@ session = DBSession()
 
 
 #main page
-@app.route('/')
-def main_page():
-	#query = session.query(Department)
-	#allList = query.all()
-	#for i in allList:
-		#result = dumps(str(i))
-	return "Hello, world!"
+@app.route('/<int:datetime>', methods=['GET'])
+def main_page(datetime):
+	query = session.query(Time).all()
+	converted_list = []
+	for i in query:
+		time_object = i.__dict__.copy()
+		del time_object['_sa_instance_state']
+		converted_list.append(time_object)
+	session.close()
+	print type(converted_list)
+	return jsonify(result=converted_list)
 
 
-#
 # #Object post, put, delete
 # @app.route('/object', methods=['GET','POST'])
 # def show_object():
