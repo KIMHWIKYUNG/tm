@@ -1,0 +1,196 @@
+<html>
+
+<head>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style>
+        .tooltip {
+            /* NEW */
+            background: #eee;
+            /* NEW */
+            box-shadow: 0 0 5px #999999;
+            /* NEW */
+            color: #333;
+            /* NEW */
+            display: none;
+            /* NEW */
+            font-size: 12px;
+            /* NEW */
+            left: 130px;
+            /* NEW */
+            padding: 10px;
+            /* NEW */
+            position: absolute;
+            /* NEW */
+            text-align: center;
+            /* NEW */
+            top: 95px;
+            /* NEW */
+            width: 80px;
+            /* NEW */
+            z-index: 10;
+            /* NEW */
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="chart"></div>
+    <script>
+        /*var data = [10, 20, 30];*/
+
+        var data = [
+            {
+                behavior: "test",
+                eTime: "Sat, 02 Jan 2016 13:00:00 GMT",
+                timeCode: "1"
+            },
+            {
+                behavior: "test2",
+                eTime: "Sat, 02 Jan 2016 13:20:00 GMT",
+                timeCode: "2"
+            },
+            {
+                behavior: "test3",
+                eTime: "Sat, 02 Jan 2016 13:30:00 GMT",
+                timeCode: "3"
+            }
+        ];
+
+        for (var i = 0; i < data.length; i++) {
+            var stringTime = data[i].eTime.substring(17, 22);
+            var hour = parseInt(stringTime.substring(0, 2));
+            var min = parseInt(stringTime.substring(3, 5));
+            var endTime = 60 * hour + min;
+            data[i].eTime = endTime;
+
+            if (i == 0) {
+                data[i].sTime = 720;
+                data[i].interval = endTime - data[i].sTime;
+            } else {
+                data[i].sTime = data[i - 1].eTime;
+                data[i].interval = endTime - data[i].sTime;
+            }
+
+            console.log(data[i]);
+        }
+
+        var r = 300;
+        var outerR = 350;
+        var width = 1500;
+        var height = 1500;
+        var D360Radian = 360 * Math.PI / 180;
+
+
+        //컬러 스케일 함수, 10~60 사이의 값을 입력하면 빨간색과 파란색을 정당히 섞어준다
+        var colorScale =
+            d3.scale.linear().domain([10, 60]).range(["red", "blue"]);
+
+
+        //라디안 스케일, 0은 0라디안, 1440은 360도를 표현하는 라디안(약6.2)로 리턴된다.
+        var radianScale = d3.scale.linear().domain([0, 1440]).range([0, D360Radian]);
+
+
+        //차트를 그릴 캔버스
+        var canvas = d3.select("#chart").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        //차트가 들어갈 그룹 테그
+        var group = canvas.append("g")
+            .attr("transform", "translate(300,300)");
+
+
+        //데이터의 sTime을 시작 각도로, 데이터의 eTime을 끝나는 각도로 입력하여 마지막에 d속성에 들어갈 수 있도록 세팅
+        var arc = d3.svg.arc()
+            .innerRadius(0)
+            .outerRadius(r)
+            .startAngle(d => {
+                return radianScale(d.data.sTime);
+            })
+            .endAngle(d => {
+                return radianScale(d.data.eTime);
+            });
+
+        var outerArc = d3.svg.arc()
+            .innerRadius(0)
+            .outerRadius(outerR)
+            .startAngle(d => {
+                return radianScale(d.data.sTime);
+            })
+            .endAngle(d => {
+                return radianScale(d.data.eTime);
+            });
+
+        //파이에 대한 레이아웃, 데이터를 풍부하게 만들어준다.
+        var pie = d3.layout.pie()
+            .value(d => {
+                return d.interval;
+            });
+
+        //조각 (아직 패스를 붙이기 전, 그룹 태그만 존재하는 상태
+        var arcs = group.selectAll('.arc')
+            .data(pie(data))
+            .enter()
+            .append("g")
+            .attr("class", "arc");
+
+
+        //조각(패스 태그)
+        var path = arcs.append("path");
+        /*            .attr("d", arc)
+                    .attr("fill", (d, i) => {
+                        return colorScale(d.data.interval);
+                    });*/
+
+        var innerPath = path
+            .attr("d", arc)
+            .attr("fill", (d, i) => {
+                return colorScale(d.data.interval);
+            });
+
+
+        /*        //각 조각에 텍스트를 올림
+                arcs.append("text")
+                    .attr("transform", d => {
+                        return "translate(" + arc.centroid(d) + ")";
+                    })
+                    .text(d => {
+                        return d.data.behavior;
+                    })
+                    .attr("font-size", "1.5em");*/
+
+
+        //마우스를 올릴 경우 생기는 데이터들
+        var tooltip = d3.select('#chart') // NEW
+            .append('div') // NEW
+            .attr('class', 'tooltip'); // NEW
+
+        tooltip.append('div') // NEW
+            .attr('class', 'label'); // NEW
+
+        tooltip.append('div') // NEW
+            .attr('class', 'count'); // NEW
+        tooltip.append('div') // NEW
+            .attr('class', 'percent');
+
+        //마우스 오버 이벤트 온
+        innerPath.on('mouseover', function (d) { // NEW
+            var total = d3.sum(data.map(function (d) { // NEW
+                return d.interval; // NEW
+            })); // NEW
+            var percent = Math.round(1000 * d.data.interval / total) / 10; // NEW
+            tooltip.select('.label').html(d.data.behavior); // NEW
+            tooltip.select('.count').html(d.data.interval); // NEW
+            tooltip.select('.percent').html(percent + '%'); // NEW
+            tooltip.style('display', 'block'); // NEW
+        }); // NEW
+
+        //마우스가 빠져나갔을 경우
+        innerPath.on('mouseout', function () { // NEW
+            tooltip.style('display', 'none'); // NEW
+        });
+    </script>
+</body>
+
+</html>
